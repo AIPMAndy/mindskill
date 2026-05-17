@@ -1,9 +1,4 @@
-import { MindNode, ThemeColor } from './types';
-import { THEME_COLORS } from './ai-config';
-
-export const getThemeColor = (theme: ThemeColor) => {
-  return THEME_COLORS[theme] || THEME_COLORS.default;
-};
+import { MindNode } from './types';
 
 export const countNodes = (nodes: MindNode[]): number => {
   return nodes.reduce((count, node) => {

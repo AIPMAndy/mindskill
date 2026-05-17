@@ -99,7 +99,7 @@ export const XMindStyles = {
 export interface XMindContent {
   id: string;
   title: string;
-  children?: XMindContent[];
+  children?: XMindContent[] | { attached?: XMindContent[] };
   notes?: {
     plain?: {
       content?: string;
@@ -207,9 +207,11 @@ export class XMindParser {
     };
 
     // XMind 的子节点在 children.attached 数组中
-    const childrenArray = topic.children?.attached || topic.children;
+    const childrenArray = Array.isArray(topic.children)
+      ? topic.children
+      : topic.children?.attached || [];
 
-    if (childrenArray && Array.isArray(childrenArray)) {
+    if (childrenArray && Array.isArray(childrenArray) && childrenArray.length > 0) {
       console.log('[parseTopicToNodes] Topic has children:', childrenArray.length);
       node.children = childrenArray.map(child =>
         this.parseTopicToNodes(child)

@@ -268,10 +268,8 @@ export const EnhancedCanvas = () => {
     );
   }
 
-  const themeColors = getTheme(theme);
-
   return (
-    <div className="w-full h-full" style={{ backgroundColor: themeColors.colors.background }}>
+    <div className="w-full h-full" style={{ backgroundColor: theme.colors.background }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -293,7 +291,7 @@ export const EnhancedCanvas = () => {
         }}
       >
         <Background
-          color={themeColors.colors.border}
+          color={theme.colors.border}
           gap={30}
           size={1}
         />
