@@ -1,29 +1,42 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useMindMapStore } from '@/lib/store';
 import { EnhancedCanvas } from '@/components/MindMap/EnhancedCanvas';
 import { EnhancedToolbar } from '@/components/MindMap/EnhancedToolbar';
 import { Loader2 } from 'lucide-react';
 
-export default function EditorPage() {
-  const params = useParams();
-  const id = params.id as string;
+function EditorContent() {
+  const searchParams = useSearchParams();
+  const id = searchParams.get('id');
   const { mindMaps, setCurrentMindMap, currentMindMap } = useMindMapStore();
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     if (id) {
+      console.log('[EditorContent] Loading mind map with id:', id);
+      console.log('[EditorContent] Current mindMaps:', mindMaps);
+
+      // 如果 currentMindMap 已经是正确的，就不要重新设置
+      if (currentMindMap && currentMindMap.id === id) {
+        console.log('[EditorContent] currentMindMap already set correctly:', currentMindMap);
+        setIsLoaded(true);
+        return;
+      }
+
       const mindMap = mindMaps.find((m) => m.id === id);
+      console.log('[EditorContent] Found mindMap:', mindMap);
+
       if (mindMap) {
         setCurrentMindMap(id);
         setIsLoaded(true);
       } else {
+        console.error('[EditorContent] Mind map not found!');
         setIsLoaded(true);
       }
     }
-  }, [id, mindMaps, setCurrentMindMap]);
+  }, [id, mindMaps, setCurrentMindMap, currentMindMap]);
 
   const handleSave = () => {
     if (currentMindMap) {
@@ -68,5 +81,20 @@ export default function EditorPage() {
         <EnhancedCanvas />
       </div>
     </div>
+  );
+}
+
+export default function EditorPage() {
+  return (
+    <Suspense fallback={
+      <div className="h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">加载中...</p>
+        </div>
+      </div>
+    }>
+      <EditorContent />
+    </Suspense>
   );
 }

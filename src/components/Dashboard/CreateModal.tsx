@@ -25,7 +25,7 @@ export const CreateModal = ({ isOpen, onClose }: CreateModalProps) => {
     const newMindMap = addMindMap(title.trim());
     onClose();
     setTitle('');
-    router.push(`/editor/${newMindMap.id}`);
+    router.push(`/editor?id=${newMindMap.id}`);
   };
 
   return (

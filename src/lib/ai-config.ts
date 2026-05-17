@@ -43,6 +43,12 @@ export const AI_CONFIGS = {
     icon: '⚡',
     provider: 'SiliconFlow',
   },
+  custom: {
+    name: '自定义模型',
+    description: '配置任意兼容 OpenAI API 的模型',
+    icon: '⚙️',
+    provider: 'Custom',
+  },
 };
 
 export const MODEL_OPTIONS = {
@@ -80,6 +86,7 @@ export const MODEL_OPTIONS = {
     { id: 'THUDM/glm-z1-9b', name: 'GLM-Z1-9B', description: '智谱轻量' },
     { id: 'Qwen/Qwen2.5-7B-Instruct', name: 'Qwen2.5-7B', description: '阿里轻量' },
   ],
+  custom: [],
 };
 
 export const PROMPTS = {

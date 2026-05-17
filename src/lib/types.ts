@@ -12,7 +12,9 @@ export interface NodeStyle {
   backgroundColor?: string;
   textColor?: string;
   fontSize?: number;
+  fontWeight?: number;
   borderColor?: string;
+  borderWidth?: number;
 }
 
 export interface MindMap {
@@ -26,20 +28,22 @@ export interface MindMap {
 
 export interface MindMapSettings {
   layout: 'horizontal' | 'vertical' | 'tree';
-  theme: ThemeColor;
+  theme: string;
   zoom: number;
+  compact?: boolean;
 }
 
-export type ThemeColor = 'default' | 'ocean' | 'forest' | 'sunset' | 'berry';
+export type ThemeColor = 'luxury' | 'ocean' | 'forest' | 'sunset' | 'purple' | 'rose';
 
-export type AIModel = 
-  | 'openai' 
-  | 'anthropic' 
-  | 'deepseek' 
-  | 'zhipu' 
-  | 'qwen' 
-  | 'kimi' 
-  | 'siliconflow';
+export type AIModel =
+  | 'openai'
+  | 'anthropic'
+  | 'deepseek'
+  | 'zhipu'
+  | 'qwen'
+  | 'kimi'
+  | 'siliconflow'
+  | 'custom';
 
 export interface AIRequest {
   topic?: string;

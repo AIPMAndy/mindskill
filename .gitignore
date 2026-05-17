@@ -37,3 +37,8 @@ next-env.d.ts
 # ide
 .idea
 .vscode
+
+# tauri
+src-tauri/target
+src-tauri/gen
+src-tauri/WixTools

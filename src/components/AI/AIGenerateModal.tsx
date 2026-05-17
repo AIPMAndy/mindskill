@@ -1,17 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Modal } from '@/components/UI/Modal';
 import { Button } from '@/components/UI/Button';
 import { Input } from '@/components/UI/Input';
-import { AI_CONFIGS, MODEL_OPTIONS } from '@/lib/ai-config';
-import { AIModel } from '@/lib/types';
-import { Sparkles, Loader2, ChevronDown, Check } from 'lucide-react';
+import { useMindMapStore } from '@/lib/store';
+import { Sparkles, Loader2 } from 'lucide-react';
 
 interface AIGenerateModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onGenerate: (topic: string, model: AIModel, customModel?: string) => Promise<void>;
+  onGenerate: (
+    topic: string,
+    model: any,
+    customModel?: string,
+    customConfig?: { baseURL: string; apiKey: string }
+  ) => Promise<void>;
 }
 
 export const AIGenerateModal = ({
@@ -19,18 +23,38 @@ export const AIGenerateModal = ({
   onClose,
   onGenerate,
 }: AIGenerateModalProps) => {
+  const { aiConfig } = useMindMapStore();
   const [topic, setTopic] = useState('');
-  const [selectedProvider, setSelectedProvider] = useState<AIModel>('deepseek');
-  const [selectedModel, setSelectedModel] = useState<string>('');
+  const [modelName, setModelName] = useState('');
+  const [baseUrl, setBaseUrl] = useState('');
+  const [apiKey, setApiKey] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
 
-  const modelOptions = MODEL_OPTIONS[selectedProvider] || [];
-  const providerInfo = AI_CONFIGS[selectedProvider];
+  // 自动加载保存的配置
+  useEffect(() => {
+    if (aiConfig) {
+      setModelName(aiConfig.modelName);
+      setBaseUrl(aiConfig.baseURL);
+      setApiKey(aiConfig.apiKey);
+    }
+  }, [aiConfig]);
 
   const handleGenerate = async () => {
     if (!topic.trim()) {
       setError('请输入主题');
+      return;
+    }
+    if (!modelName.trim()) {
+      setError('请输入模型名称');
+      return;
+    }
+    if (!baseUrl.trim()) {
+      setError('请输入 Base URL');
+      return;
+    }
+    if (!apiKey.trim()) {
+      setError('请输入 API Key');
       return;
     }
 
@@ -38,12 +62,19 @@ export const AIGenerateModal = ({
     setIsGenerating(true);
 
     try {
-      await onGenerate(topic.trim(), selectedProvider, selectedModel || undefined);
+      await onGenerate(
+        topic.trim(),
+        'custom',
+        modelName.trim(),
+        {
+          baseURL: baseUrl.trim(),
+          apiKey: apiKey.trim(),
+        }
+      );
       onClose();
       setTopic('');
-      setSelectedModel('');
-    } catch (err) {
-      setError('生成失败，请重试');
+    } catch (err: any) {
+      setError(err.message || '生成失败，请重试');
     } finally {
       setIsGenerating(false);
     }
@@ -52,8 +83,8 @@ export const AIGenerateModal = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="AI 创建思维导图" size="lg">
       <div className="space-y-6">
-        <div className="text-gray-600 text-sm leading-relaxed">
-          <p>输入你想要探索的主题，AI将为你生成一个完整的思维导图结构。支持多种国产和国际大模型。</p>
+        <div className="text-[#8A8A8A] text-base leading-relaxed">
+          <p>输入主题和AI模型配置，支持任意兼容OpenAI格式的模型（OpenAI、Claude、DeepSeek、Qwen等）</p>
         </div>
 
         <Input
@@ -61,86 +92,67 @@ export const AIGenerateModal = ({
           placeholder="例如：人工智能在教育中的应用"
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
-          error={error}
           autoFocus
         />
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            选择AI提供商
-          </label>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {Object.entries(AI_CONFIGS).map(([key, config]) => (
-              <button
-                key={key}
-                onClick={() => {
-                  setSelectedProvider(key as AIModel);
-                  setSelectedModel('');
-                }}
-                className={`p-4 rounded-xl border-2 transition-all text-left ${
-                  selectedProvider === key
-                    ? 'border-blue-500 bg-blue-50 shadow-md'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl flex-shrink-0">{config.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-gray-900 text-sm truncate">
-                      {config.name}
-                    </div>
-                    <div className="text-xs text-gray-500 leading-tight mt-1">
-                      {config.provider}
-                    </div>
-                  </div>
-                  {selectedProvider === key && (
-                    <Check className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                  )}
-                </div>
-              </button>
-            ))}
+        <div className="space-y-4 bg-[#FAFAF9] p-6 rounded-2xl border border-[#E5E5E0]">
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-base font-medium text-[#1A1A1A]">
+              AI 模型配置
+            </div>
+            {aiConfig && (
+              <span className="text-xs text-green-600 bg-green-50 px-3 py-1 rounded-full">
+                已使用保存的配置
+              </span>
+            )}
+          </div>
+
+          <Input
+            label="模型名称"
+            placeholder="例如：gpt-4o, claude-3-5-sonnet-20241022, deepseek-chat"
+            value={modelName}
+            onChange={(e) => setModelName(e.target.value)}
+          />
+
+          <Input
+            label="Base URL"
+            placeholder="例如：https://api.openai.com/v1"
+            value={baseUrl}
+            onChange={(e) => setBaseUrl(e.target.value)}
+          />
+
+          <Input
+            label="API Key"
+            type="password"
+            placeholder="输入你的 API Key"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+          />
+
+          {!aiConfig && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+              <p className="text-sm text-amber-700">
+                💡 提示：在首页点击"AI配置"可以保存配置，下次使用时自动填充
+              </p>
+            </div>
+          )}
+
+          <div className="bg-white p-4 rounded-xl border border-[#E5E5E0]">
+            <p className="text-sm text-[#8A8A8A] leading-relaxed">
+              <strong className="text-[#1A1A1A]">常用配置示例：</strong><br/>
+              • OpenAI: https://api.openai.com/v1<br/>
+              • DeepSeek: https://api.deepseek.com<br/>
+              • 硅基流动: https://api.siliconflow.cn/v1<br/>
+              • 自定义中转: 填入你的中转地址
+            </p>
           </div>
         </div>
 
-        {modelOptions.length > 0 && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              选择具体模型
-            </label>
-            <div className="relative">
-              <select
-                value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white"
-              >
-                <option value="">使用默认模型</option>
-                {modelOptions.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.name} - {option.description}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-            </div>
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+            <p className="text-sm text-red-600">{error}</p>
           </div>
         )}
-
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <div className="flex items-start gap-3">
-            <div className="text-2xl">{providerInfo?.icon}</div>
-            <div>
-              <div className="font-medium text-amber-900 mb-1">
-                {providerInfo?.name}
-              </div>
-              <p className="text-sm text-amber-700">
-                {providerInfo?.description}
-              </p>
-              <p className="text-xs text-amber-600 mt-2">
-                请确保已在环境变量中配置相应的 API Key
-              </p>
-            </div>
-          </div>
-        </div>
 
         <div className="flex justify-end gap-3 pt-4">
           <Button variant="secondary" onClick={onClose} disabled={isGenerating}>
@@ -149,7 +161,7 @@ export const AIGenerateModal = ({
           <Button
             onClick={handleGenerate}
             loading={isGenerating}
-            disabled={!topic.trim()}
+            disabled={!topic.trim() || !modelName.trim() || !baseUrl.trim() || !apiKey.trim()}
           >
             {isGenerating ? (
               <>
@@ -168,3 +180,4 @@ export const AIGenerateModal = ({
     </Modal>
   );
 };
+

@@ -4,7 +4,7 @@ import { AIModel } from '@/lib/types';
 
 export async function POST(request: NextRequest) {
   try {
-    const { topic, model, baseURL, customModel } = await request.json();
+    const { topic, model, baseURL, customModel, apiKey } = await request.json();
 
     if (!topic) {
       return NextResponse.json(
@@ -18,6 +18,16 @@ export async function POST(request: NextRequest) {
         { error: '请选择AI模型' },
         { status: 400 }
       );
+    }
+
+    // 验证自定义模型配置
+    if (model === 'custom') {
+      if (!customModel || !baseURL || !apiKey) {
+        return NextResponse.json(
+          { error: '自定义模型需要提供模型名称、Base URL 和 API Key' },
+          { status: 400 }
+        );
+      }
     }
 
     let nodes;
@@ -60,7 +70,7 @@ export async function POST(request: NextRequest) {
         nodes = await generateMindMap(
           model as AIModel,
           topic,
-          { baseURL, customModel }
+          { baseURL, customModel, apiKey }
         );
       } catch (error: any) {
         return NextResponse.json(

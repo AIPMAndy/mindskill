@@ -40,7 +40,7 @@ export const ImportModal = ({ isOpen, onClose }: ImportModalProps) => {
       setTimeout(() => {
         onClose();
         loadMindMap(newMindMap);
-        router.push(`/editor/${newMindMap.id}`);
+        router.push(`/editor?id=${newMindMap.id}`);
         setSuccess(false);
         setIsImporting(false);
       }, 1000);

@@ -4,11 +4,10 @@
   "version": "0.1.0",
   "identifier": "com.mindskill.app",
   "build": {
-    "frontendDist": "../dist",
+    "frontendDist": "../out",
     "devUrl": "http://localhost:3000",
-    "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build",
-    "devtools": true
+    "beforeDevCommand": "bun run dev",
+    "beforeBuildCommand": "bun run build"
   },
   "app": {
     "windows": [
@@ -34,7 +33,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["dmg", "app", "macos"],
+    "targets": "all",
     "category": "productivity",
     "shortDescription": "AI智能思维导图工具",
     "longDescription": "Mindskill是一款结合先进AI技术的智能思维导图工具，支持DeepSeek、GPT、Claude等多种AI模型，帮助用户快速创建、扩展和优化思维导图。",
@@ -59,18 +58,5 @@
       "timestampUrl": ""
     }
   },
-  "plugins": {
-    "fs": {
-      "scope": {
-        "allow": ["$APPDATA/**", "$HOME/**", "$DOCUMENT/**", "$DOWNLOAD/**"],
-        "deny": []
-      }
-    },
-    "dialog": {
-      "all": true
-    },
-    "shell": {
-      "open": true
-    }
-  }
+  "plugins": {}
 }

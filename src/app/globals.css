@@ -60,3 +60,31 @@ html {
 .react-flow__minimap {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
+
+/* 确保主题选择器在最顶层 */
+.theme-selector-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999 !important;
+  pointer-events: auto !important;
+}
+
+.theme-selector-menu {
+  position: fixed;
+  z-index: 100000 !important;
+  pointer-events: auto !important;
+}
+
+.theme-selector-menu button {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+/* 防止 React Flow 捕获主题选择器的事件 */
+.react-flow__pane {
+  z-index: 1 !important;
+}
+
+.react-flow__renderer {
+  z-index: 1 !important;
+}

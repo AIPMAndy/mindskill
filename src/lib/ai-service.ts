@@ -16,51 +16,64 @@ export async function callAI(
   options?: {
     baseURL?: string;
     customModel?: string;
+    apiKey?: string;
   }
 ): Promise<string> {
   let apiKey: string | undefined;
   let endpoint: string;
   let modelId: string;
 
-  switch (model) {
-    case 'deepseek':
-      apiKey = process.env.DEEPSEEK_API_KEY;
-      endpoint = API_ENDPOINTS.deepseek;
-      modelId = options?.customModel || 'deepseek-chat';
-      break;
-    case 'zhipu':
-      apiKey = process.env.ZHIPU_API_KEY;
-      endpoint = API_ENDPOINTS.zhipu;
-      modelId = options?.customModel || 'glm-4';
-      break;
-    case 'qwen':
-      apiKey = process.env.QWEN_API_KEY;
-      endpoint = API_ENDPOINTS.qwen;
-      modelId = options?.customModel || 'qwen-turbo';
-      break;
-    case 'kimi':
-      apiKey = process.env.KIMI_API_KEY;
-      endpoint = API_ENDPOINTS.kimi;
-      modelId = options?.customModel || 'moonshot-v1-8k';
-      break;
-    case 'siliconflow':
-      apiKey = process.env.SILICONFLOW_API_KEY;
-      endpoint = API_ENDPOINTS.siliconflow;
-      modelId = options?.customModel || 'deepseek-ai/DeepSeek-V3';
-      break;
-    case 'openai':
-      apiKey = process.env.OPENAI_API_KEY;
-      endpoint = options?.baseURL || 'https://api.openai.com/v1/chat/completions';
-      modelId = options?.customModel || 'gpt-4';
-      break;
-    case 'anthropic':
-      throw new Error('Anthropic 需要使用专门的 SDK');
-    default:
-      throw new Error(`不支持的模型: ${model}`);
-  }
+  // 自定义模型配置
+  if (model === 'custom') {
+    if (!options?.baseURL || !options?.customModel || !options?.apiKey) {
+      throw new Error('自定义模型需要提供 baseURL、模型名称和 API Key');
+    }
+    apiKey = options.apiKey;
+    endpoint = options.baseURL.endsWith('/chat/completions')
+      ? options.baseURL
+      : `${options.baseURL}/chat/completions`;
+    modelId = options.customModel;
+  } else {
+    switch (model) {
+      case 'deepseek':
+        apiKey = process.env.DEEPSEEK_API_KEY;
+        endpoint = API_ENDPOINTS.deepseek;
+        modelId = options?.customModel || 'deepseek-chat';
+        break;
+      case 'zhipu':
+        apiKey = process.env.ZHIPU_API_KEY;
+        endpoint = API_ENDPOINTS.zhipu;
+        modelId = options?.customModel || 'glm-4';
+        break;
+      case 'qwen':
+        apiKey = process.env.QWEN_API_KEY;
+        endpoint = API_ENDPOINTS.qwen;
+        modelId = options?.customModel || 'qwen-turbo';
+        break;
+      case 'kimi':
+        apiKey = process.env.KIMI_API_KEY;
+        endpoint = API_ENDPOINTS.kimi;
+        modelId = options?.customModel || 'moonshot-v1-8k';
+        break;
+      case 'siliconflow':
+        apiKey = process.env.SILICONFLOW_API_KEY;
+        endpoint = API_ENDPOINTS.siliconflow;
+        modelId = options?.customModel || 'deepseek-ai/DeepSeek-V3';
+        break;
+      case 'openai':
+        apiKey = process.env.OPENAI_API_KEY;
+        endpoint = options?.baseURL || 'https://api.openai.com/v1/chat/completions';
+        modelId = options?.customModel || 'gpt-4';
+        break;
+      case 'anthropic':
+        throw new Error('Anthropic 需要使用专门的 SDK');
+      default:
+        throw new Error(`不支持的模型: ${model}`);
+    }
 
-  if (!apiKey) {
-    throw new Error(`未配置 ${model} 的 API Key`);
+    if (!apiKey) {
+      throw new Error(`未配置 ${model} 的 API Key`);
+    }
   }
 
   const response = await fetch(endpoint, {
@@ -98,11 +111,11 @@ export async function callAI(
 export async function generateMindMap(
   model: AIModel,
   topic: string,
-  options?: { baseURL?: string; customModel?: string }
+  options?: { baseURL?: string; customModel?: string; apiKey?: string }
 ): Promise<MindNode[]> {
   const prompt = PROMPTS.generate(topic);
   const content = await callAI(model, prompt, options);
-  
+
   const jsonMatch = content.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     throw new Error('AI返回内容不是有效的JSON');
@@ -116,11 +129,11 @@ export async function expandNode(
   model: AIModel,
   nodeText: string,
   count: number,
-  options?: { baseURL?: string; customModel?: string }
+  options?: { baseURL?: string; customModel?: string; apiKey?: string }
 ): Promise<MindNode[]> {
   const prompt = PROMPTS.expand(nodeText, count);
   const content = await callAI(model, prompt, options);
-  
+
   const jsonMatch = content.match(/\[[\s\S]*\]/);
   if (!jsonMatch) {
     throw new Error('AI返回内容不是有效的JSON');

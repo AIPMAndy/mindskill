@@ -133,25 +133,31 @@ export class XMindParser {
   static async parse(file: File): Promise<MindMap> {
     const arrayBuffer = await file.arrayBuffer();
     const zip = await this.extractZip(arrayBuffer);
-    
+
     const contentJson = await this.getFileContent(zip, 'content.json');
     const metadataJson = await this.getFileContent(zip, 'metadata.json');
-    
+
     const content = JSON.parse(contentJson);
     const metadata = JSON.parse(metadataJson);
-    
+
+    console.log('[XMindParser] Parsed content:', content);
+
     const rootTopic = content[0]?.rootTopic;
     const title = content[0]?.title || '未命名思维导图';
-    
+
+    console.log('[XMindParser] Root topic:', rootTopic);
+
     const nodes = rootTopic ? this.parseTopicToNodes(rootTopic) : [];
-    
+
+    console.log('[XMindParser] Parsed nodes:', nodes);
+
     return {
       id: this.generateId(),
       title,
       nodes,
       settings: {
         layout: 'horizontal',
-        theme: 'default',
+        theme: 'luxury',
         zoom: 1,
       },
       createdAt: metadata?.metadata?.created || new Date().toISOString(),
@@ -191,6 +197,8 @@ export class XMindParser {
   }
 
   private static parseTopicToNodes(topic: XMindContent): MindNode[] {
+    console.log('[parseTopicToNodes] Parsing topic:', topic);
+
     const node: MindNode = {
       id: topic.id || this.generateId(),
       text: topic.title || '未命名节点',
@@ -198,12 +206,18 @@ export class XMindParser {
       expanded: true,
     };
 
-    if (topic.children && Array.isArray(topic.children)) {
-      node.children = topic.children.map(child => 
+    // XMind 的子节点在 children.attached 数组中
+    const childrenArray = topic.children?.attached || topic.children;
+
+    if (childrenArray && Array.isArray(childrenArray)) {
+      console.log('[parseTopicToNodes] Topic has children:', childrenArray.length);
+      node.children = childrenArray.map(child =>
         this.parseTopicToNodes(child)
       ).flat();
+      console.log('[parseTopicToNodes] Parsed children:', node.children);
     }
 
+    console.log('[parseTopicToNodes] Returning node:', node);
     return [node];
   }
 
