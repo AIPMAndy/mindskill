@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface ContextMenuState {
   isOpen: boolean;
@@ -12,6 +12,12 @@ export function useContextMenu() {
     position: { x: 0, y: 0 },
     nodeId: null,
   });
+
+  const contextMenuRef = useRef(contextMenu);
+
+  useEffect(() => {
+    contextMenuRef.current = contextMenu;
+  }, [contextMenu]);
 
   const openContextMenu = (nodeId: string, x: number, y: number) => {
     setContextMenu({
@@ -31,13 +37,13 @@ export function useContextMenu() {
 
   useEffect(() => {
     const handleClick = () => {
-      if (contextMenu.isOpen) {
+      if (contextMenuRef.current.isOpen) {
         closeContextMenu();
       }
     };
 
     const handleScroll = () => {
-      if (contextMenu.isOpen) {
+      if (contextMenuRef.current.isOpen) {
         closeContextMenu();
       }
     };
@@ -49,7 +55,7 @@ export function useContextMenu() {
       window.removeEventListener('click', handleClick);
       window.removeEventListener('scroll', handleScroll);
     };
-  }, [contextMenu.isOpen]);
+  }, []); // Empty deps - listeners registered once
 
   return {
     contextMenu,
