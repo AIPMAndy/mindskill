@@ -1,3 +1,5 @@
+import { Command } from './commands/Command';
+
 export interface MindNode {
   id: string;
   text: string;
@@ -57,4 +59,10 @@ export interface AIResponse {
   nodes?: MindNode[];
   children?: MindNode[];
   error?: string;
+}
+
+export interface CommandHistoryState {
+  undoStack: Command[];
+  redoStack: Command[];
+  maxSize: number;
 }
