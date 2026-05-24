@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
   Background,
@@ -21,6 +21,18 @@ import { useMindMapStore } from '@/lib/store';
 import { MindMapNode } from './Node';
 import { MindNode, MindMapSettings } from '@/lib/types';
 import { getTheme } from '@/lib/themes';
+import { useCommandHistory } from '@/hooks/useCommandHistory';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useContextMenu } from '@/hooks/useContextMenu';
+import { useSearch } from '@/hooks/useSearch';
+import { ContextMenu } from './ContextMenu';
+import { SearchBar } from './SearchBar';
+import { ExportDialog } from '../Dashboard/ExportDialog';
+import { AddNodeCommand } from '@/lib/commands/AddNodeCommand';
+import { DeleteNodeCommand } from '@/lib/commands/DeleteNodeCommand';
+import { UpdateNodeCommand } from '@/lib/commands/UpdateNodeCommand';
+import { v4 as uuidv4 } from 'uuid';
+import { Download } from 'lucide-react';
 
 interface CustomNodeData {
   node: MindNode;
@@ -76,16 +88,26 @@ export const EnhancedCanvas = () => {
     setSelectedNode,
     updateNode,
     addNode,
+    deleteNode,
   } = useMindMapStore();
 
   const themeId = currentMindMap?.settings.theme || 'luxury';
   const layout = currentMindMap?.settings.layout || 'horizontal';
   const compact = currentMindMap?.settings.compact || false;
 
-  console.log('[EnhancedCanvas] Current theme:', themeId, 'compact:', compact);
-
   const theme = getTheme(themeId);
   const layoutConfig = LAYOUT_CONFIGS[layout] || LAYOUT_CONFIGS.horizontal;
+
+  // Phase 1 hooks
+  const commandHistory = useCommandHistory();
+  const { contextMenu, openContextMenu, closeContextMenu } = useContextMenu();
+  const { searchQuery, searchResults, setSearchQuery, clearSearch } = useSearch(
+    currentMindMap?.nodes || []
+  );
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [searchBarFocused, setSearchBarFocused] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
 
   const convertToFlowNodes = useCallback(
     (
@@ -100,31 +122,36 @@ export const EnhancedCanvas = () => {
       const horizontalGap = compact ? layoutConfig.horizontalGap * 0.6 : layoutConfig.horizontalGap;
       const verticalGap = compact ? layoutConfig.verticalGap * 0.6 : layoutConfig.verticalGap;
 
-      console.log('[EnhancedCanvas] Gaps - horizontal:', horizontalGap, 'vertical:', verticalGap, 'compact:', compact);
-
-      // 计算所有子节点的总高度
+      // Calculate total height of all child nodes
       const subtreeHeights = nodes.map(node =>
         calculateSubtreeHeight(node, verticalGap)
       );
       const totalHeight = subtreeHeights.reduce((sum, h) => sum + h, 0);
 
-      // 从顶部开始布局
+      // Layout from top
       let currentY = y - totalHeight / 2;
 
       nodes.forEach((node, index) => {
         const subtreeHeight = subtreeHeights[index];
         const nodeY = currentY + subtreeHeight / 2;
 
+        // Check if node matches search
+        const isSearchMatch = searchResults.some(result => result.nodeId === node.id);
+
         const flowNode: Node = {
           id: node.id,
           type: 'mindMapNode',
           position: { x, y: nodeY },
-          data: { node, theme: themeId },
+          data: {
+            node,
+            theme: themeId,
+            isSearchMatch
+          },
           selected: node.id === selectedNodeId,
         };
         flowNodes.push(flowNode);
 
-        // 只有当节点展开时才渲染子节点
+        // Only render children if node is expanded
         if (node.children.length > 0 && node.expanded !== false) {
           const childX = x + horizontalGap;
           const { nodes: childNodes, edges: childEdges } = convertToFlowNodes(
@@ -156,7 +183,7 @@ export const EnhancedCanvas = () => {
 
       return { nodes: flowNodes, edges };
     },
-    [selectedNodeId, themeId, theme, layoutConfig, compact]
+    [selectedNodeId, themeId, theme, layoutConfig, compact, searchResults]
   );
 
   const initialData = useMemo(() => {
@@ -201,57 +228,140 @@ export const EnhancedCanvas = () => {
       e.stopPropagation();
       const nodeData = node.data as unknown as CustomNodeData;
       const newText = prompt('输入新的节点内容:', nodeData?.node?.text);
-      if (newText && newText.trim()) {
+      if (newText && newText.trim() && currentMindMap) {
+        const command = new UpdateNodeCommand(
+          currentMindMap.nodes,
+          node.id,
+          newText.trim()
+        );
+        commandHistory.executeCommand(command);
         updateNode(node.id, newText.trim());
       }
     },
-    [updateNode]
+    [updateNode, commandHistory, currentMindMap]
   );
 
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (!selectedNodeId) return;
-
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        const newText = prompt('输入新节点内容:');
-        if (newText && newText.trim()) {
-          addNode(selectedNodeId, newText.trim());
-        }
-      }
-
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        const newText = prompt('输入子节点内容:');
-        if (newText && newText.trim()) {
-          addNode(selectedNodeId, newText.trim());
-        }
-      }
-
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (e.key === 'Delete' || e.key === 'Backspace') {
-          e.preventDefault();
-          const target = e.target as HTMLElement;
-          if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
-            const currentMap = useMindMapStore.getState().currentMindMap;
-            if (currentMap?.nodes[0]?.id !== selectedNodeId) {
-              useMindMapStore.getState().deleteNode(selectedNodeId);
-            }
-          }
-        }
-      }
-
-      if (e.key === 'Escape') {
-        setSelectedNode(null);
+  // Helper functions for command-based operations
+  const handleAddChild = useCallback(
+    (nodeId: string) => {
+      if (!currentMindMap) return;
+      const newText = prompt('输入子节点内容:');
+      if (newText && newText.trim()) {
+        const newNode: MindNode = {
+          id: uuidv4(),
+          text: newText.trim(),
+          children: [],
+          expanded: true,
+        };
+        const command = new AddNodeCommand(currentMindMap.nodes, nodeId, newNode);
+        commandHistory.executeCommand(command);
+        addNode(nodeId, newText.trim());
       }
     },
-    [selectedNodeId, addNode, setSelectedNode]
+    [currentMindMap, commandHistory, addNode]
   );
 
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
+  const handleAddSibling = useCallback(
+    (nodeId: string) => {
+      if (!currentMindMap) return;
+      const newText = prompt('输入新节点内容:');
+      if (newText && newText.trim()) {
+        // Find parent of current node
+        const findParent = (nodes: MindNode[], targetId: string): MindNode | null => {
+          for (const node of nodes) {
+            if (node.children.some(child => child.id === targetId)) {
+              return node;
+            }
+            const found = findParent(node.children, targetId);
+            if (found) return found;
+          }
+          return null;
+        };
+
+        const parent = findParent(currentMindMap.nodes, nodeId);
+        if (parent) {
+          const newNode: MindNode = {
+            id: uuidv4(),
+            text: newText.trim(),
+            children: [],
+            expanded: true,
+          };
+          const command = new AddNodeCommand(currentMindMap.nodes, parent.id, newNode);
+          commandHistory.executeCommand(command);
+          addNode(parent.id, newText.trim());
+        }
+      }
+    },
+    [currentMindMap, commandHistory, addNode]
+  );
+
+  const handleDelete = useCallback(() => {
+    if (!selectedNodeId || !currentMindMap) return;
+
+    // Prevent deleting root node
+    if (currentMindMap.nodes[0]?.id === selectedNodeId) return;
+
+    const command = new DeleteNodeCommand(currentMindMap.nodes, selectedNodeId);
+    commandHistory.executeCommand(command);
+    deleteNode(selectedNodeId);
+    setSelectedNode(null);
+  }, [selectedNodeId, currentMindMap, commandHistory, deleteNode, setSelectedNode]);
+
+  const handleEdit = useCallback(() => {
+    if (!selectedNodeId || !currentMindMap) return;
+
+    const findNode = (nodes: MindNode[], id: string): MindNode | null => {
+      for (const node of nodes) {
+        if (node.id === id) return node;
+        const found = findNode(node.children, id);
+        if (found) return found;
+      }
+      return null;
+    };
+
+    const node = findNode(currentMindMap.nodes, selectedNodeId);
+    if (node) {
+      const newText = prompt('输入新的节点内容:', node.text);
+      if (newText && newText.trim()) {
+        const command = new UpdateNodeCommand(
+          currentMindMap.nodes,
+          selectedNodeId,
+          newText.trim()
+        );
+        commandHistory.executeCommand(command);
+        updateNode(selectedNodeId, newText.trim());
+      }
+    }
+  }, [selectedNodeId, currentMindMap, commandHistory, updateNode]);
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    onUndo: commandHistory.undo,
+    onRedo: commandHistory.redo,
+    onDelete: handleDelete,
+    onAddChild: () => selectedNodeId && handleAddChild(selectedNodeId),
+    onAddSibling: () => selectedNodeId && handleAddSibling(selectedNodeId),
+    onEdit: handleEdit,
+    onSearch: () => {
+      setSearchBarFocused(true);
+      searchInputRef.current?.focus();
+    },
+    onEscape: () => {
+      setSelectedNode(null);
+      if (searchQuery) {
+        clearSearch();
+      }
+    },
+  });
+
+  // Context menu handler
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent, node: Node) => {
+      e.preventDefault();
+      openContextMenu(node.id, e.clientX, e.clientY);
+    },
+    [openContextMenu]
+  );
 
   if (!currentMindMap) {
     return (
@@ -269,7 +379,28 @@ export const EnhancedCanvas = () => {
   }
 
   return (
-    <div className="w-full h-full" style={{ backgroundColor: theme.colors.background }}>
+    <div className="w-full h-full relative" style={{ backgroundColor: theme.colors.background }} ref={canvasRef}>
+      {/* Search Bar */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 w-full max-w-md px-4">
+        <SearchBar
+          ref={searchInputRef}
+          searchQuery={searchQuery}
+          resultCount={searchResults.length}
+          onSearchChange={setSearchQuery}
+          onClear={clearSearch}
+        />
+      </div>
+
+      {/* Export Button */}
+      <button
+        onClick={() => setIsExportDialogOpen(true)}
+        className="absolute top-4 right-4 z-10 bg-white/80 backdrop-blur-xl shadow-lg rounded-xl px-4 py-2 flex items-center gap-2 hover:bg-white transition-colors border-2 border-[#E5E5E0]"
+        aria-label="Export mind map"
+      >
+        <Download className="w-4 h-4" />
+        <span className="text-sm font-medium">Export</span>
+      </button>
+
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -278,6 +409,7 @@ export const EnhancedCanvas = () => {
         onConnect={onConnect}
         onNodeClick={onNodeClick}
         onNodeDoubleClick={handleDoubleClick}
+        onNodeContextMenu={handleContextMenu}
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         fitView
@@ -308,6 +440,31 @@ export const EnhancedCanvas = () => {
           }}
         />
       </ReactFlow>
+
+      {/* Context Menu */}
+      <ContextMenu
+        isOpen={contextMenu.isOpen}
+        position={contextMenu.position}
+        nodeId={contextMenu.nodeId}
+        onAddChild={handleAddChild}
+        onAddSibling={handleAddSibling}
+        onEdit={(nodeId) => {
+          setSelectedNode(nodeId);
+          handleEdit();
+        }}
+        onDelete={(nodeId) => {
+          setSelectedNode(nodeId);
+          handleDelete();
+        }}
+        onClose={closeContextMenu}
+      />
+
+      {/* Export Dialog */}
+      <ExportDialog
+        isOpen={isExportDialogOpen}
+        onClose={() => setIsExportDialogOpen(false)}
+        canvasRef={canvasRef as React.RefObject<HTMLElement>}
+      />
     </div>
   );
 };

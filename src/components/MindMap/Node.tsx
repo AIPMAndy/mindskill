@@ -10,6 +10,7 @@ import { getTheme } from '@/lib/themes';
 interface CustomNodeData {
   node: MindNodeType;
   theme?: string;
+  isSearchMatch?: boolean;
 }
 
 export const MindMapNode = memo(({ data, selected }: NodeProps) => {
@@ -104,6 +105,7 @@ export const MindMapNode = memo(({ data, selected }: NodeProps) => {
   };
 
   const nodeStyle = nodeData.node.style || {};
+  const isSearchMatch = nodeData.isSearchMatch || false;
 
   return (
     <div
@@ -125,13 +127,19 @@ export const MindMapNode = memo(({ data, selected }: NodeProps) => {
             ? `linear-gradient(135deg, ${theme.colors.rootGradientFrom}, ${theme.colors.rootGradientTo})`
             : 'white'),
           color: nodeStyle.textColor || (isRoot ? 'white' : theme.colors.text),
-          borderColor: nodeStyle.borderColor || (selected ? theme.colors.accent : (isRoot ? theme.colors.accent : theme.colors.border)),
-          borderWidth: nodeStyle.borderWidth || 2,
-          boxShadow: selected
-            ? `0 8px 30px ${theme.colors.accent}33`
-            : isRoot
-              ? `0 8px 30px ${theme.colors.accent}4D`
-              : `0 4px 20px ${theme.colors.shadow}`,
+          borderColor: nodeStyle.borderColor || (
+            isSearchMatch ? '#FCD34D' :
+            selected ? theme.colors.accent :
+            (isRoot ? theme.colors.accent : theme.colors.border)
+          ),
+          borderWidth: nodeStyle.borderWidth || (isSearchMatch ? 3 : 2),
+          boxShadow: isSearchMatch
+            ? '0 0 0 3px rgba(252, 211, 77, 0.3)'
+            : selected
+              ? `0 8px 30px ${theme.colors.accent}33`
+              : isRoot
+                ? `0 8px 30px ${theme.colors.accent}4D`
+                : `0 4px 20px ${theme.colors.shadow}`,
         }}
       >
         {/* 展开/收起按钮 */}
