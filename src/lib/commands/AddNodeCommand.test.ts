@@ -92,7 +92,9 @@ describe('AddNodeCommand', () => {
     cmd.execute();
     expect(nodes[0].children).toHaveLength(1);
 
+    // Second execute should NOT add again (idempotent)
     cmd.execute();
-    expect(nodes[0].children).toHaveLength(2);
+    expect(nodes[0].children).toHaveLength(1);
+    expect(nodes[0].children[0].id).toBe('child1');
   });
 });

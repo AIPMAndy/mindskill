@@ -3,6 +3,7 @@ import { MindNode } from '../types';
 
 export class AddNodeCommand implements Command {
   private parentNode: MindNode | null = null;
+  private wasAdded: boolean = false;
 
   constructor(
     private nodes: MindNode[],
@@ -20,24 +21,32 @@ export class AddNodeCommand implements Command {
   }
 
   execute(): void {
+    // Idempotent: only add if not already added
+    if (this.wasAdded) return;
+
     this.parentNode = this.findNode(this.nodes, this.parentId);
     if (this.parentNode) {
       this.parentNode.children.push(this.newNode);
+      this.wasAdded = true;
     }
   }
 
   undo(): void {
-    if (this.parentNode) {
+    if (this.parentNode && this.wasAdded) {
       const index = this.parentNode.children.findIndex(
         n => n.id === this.newNode.id
       );
       if (index !== -1) {
         this.parentNode.children.splice(index, 1);
+        this.wasAdded = false;
       }
     }
   }
 
   redo(): void {
-    this.execute();
+    if (this.parentNode && !this.wasAdded) {
+      this.parentNode.children.push(this.newNode);
+      this.wasAdded = true;
+    }
   }
 }
