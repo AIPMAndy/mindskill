@@ -1,3 +1,4 @@
+import { useRef, useCallback } from 'react';
 import { Command } from '../lib/commands/Command';
 
 const MAX_HISTORY_SIZE = 50;
@@ -8,44 +9,44 @@ interface CommandHistoryState {
 }
 
 export function useCommandHistory() {
-  const state: CommandHistoryState = {
+  const stateRef = useRef<CommandHistoryState>({
     undoStack: [],
     redoStack: []
-  };
+  });
 
-  const executeCommand = (command: Command) => {
+  const executeCommand = useCallback((command: Command) => {
     command.execute();
-    state.undoStack.push(command);
+    stateRef.current.undoStack.push(command);
 
-    if (state.undoStack.length > MAX_HISTORY_SIZE) {
-      state.undoStack.shift();
+    if (stateRef.current.undoStack.length > MAX_HISTORY_SIZE) {
+      stateRef.current.undoStack.shift();
     }
 
-    state.redoStack = [];
-  };
+    stateRef.current.redoStack = [];
+  }, []);
 
-  const undo = () => {
-    if (state.undoStack.length === 0) return;
+  const undo = useCallback(() => {
+    if (stateRef.current.undoStack.length === 0) return;
 
-    const command = state.undoStack.pop();
+    const command = stateRef.current.undoStack.pop();
     if (command) {
       command.undo();
-      state.redoStack.push(command);
+      stateRef.current.redoStack.push(command);
     }
-  };
+  }, []);
 
-  const redo = () => {
-    if (state.redoStack.length === 0) return;
+  const redo = useCallback(() => {
+    if (stateRef.current.redoStack.length === 0) return;
 
-    const command = state.redoStack.pop();
+    const command = stateRef.current.redoStack.pop();
     if (command) {
       command.redo();
-      state.undoStack.push(command);
+      stateRef.current.undoStack.push(command);
     }
-  };
+  }, []);
 
-  const canUndo = () => state.undoStack.length > 0;
-  const canRedo = () => state.redoStack.length > 0;
+  const canUndo = useCallback(() => stateRef.current.undoStack.length > 0, []);
+  const canRedo = useCallback(() => stateRef.current.redoStack.length > 0, []);
 
   return {
     executeCommand,
