@@ -39,10 +39,10 @@ describe('ContextMenu', () => {
 
     const menu = screen.getByRole('menu');
     expect(menu).toHaveStyle({
-      position: 'absolute',
       top: '250px',
       left: '150px',
     });
+    expect(menu).toHaveClass('fixed');
   });
 
   it('should render all menu items', () => {
@@ -138,6 +138,6 @@ describe('ContextMenu', () => {
     fireEvent.click(screen.getByText('Add Child Node'));
 
     expect(mockCallbacks.onAddChild).not.toHaveBeenCalled();
-    expect(mockCallbacks.onClose).toHaveBeenCalled();
+    expect(mockCallbacks.onClose).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Plus, GitBranch, Edit, Trash2 } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { Plus, GitBranch, Edit, Trash2, LucideIcon } from 'lucide-react';
 
 export interface ContextMenuProps {
   isOpen: boolean;
@@ -14,9 +14,17 @@ export interface ContextMenuProps {
 
 interface MenuItem {
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  onClick: (nodeId: string) => void;
+  icon: LucideIcon;
+  action: 'addChild' | 'addSibling' | 'edit' | 'delete';
 }
+
+// Move outside component - doesn't depend on props
+const menuItems: MenuItem[] = [
+  { label: 'Add Child Node', icon: Plus, action: 'addChild' },
+  { label: 'Add Sibling Node', icon: GitBranch, action: 'addSibling' },
+  { label: 'Edit Node', icon: Edit, action: 'edit' },
+  { label: 'Delete Node', icon: Trash2, action: 'delete' },
+];
 
 export const ContextMenu: React.FC<ContextMenuProps> = ({
   isOpen,
@@ -28,44 +36,70 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
   onEdit,
   onClose,
 }) => {
+  // Keyboard support: Escape to close
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) {
     return null;
   }
 
-  const menuItems: MenuItem[] = [
-    { label: 'Add Child Node', icon: Plus, onClick: onAddChild },
-    { label: 'Add Sibling Node', icon: GitBranch, onClick: onAddSibling },
-    { label: 'Edit Node', icon: Edit, onClick: onEdit },
-    { label: 'Delete Node', icon: Trash2, onClick: onDelete },
-  ];
+  const handleItemClick = (action: MenuItem['action']) => {
+    if (!nodeId) return;
 
-  const handleItemClick = (callback: (nodeId: string) => void) => {
-    if (nodeId) {
-      callback(nodeId);
+    switch (action) {
+      case 'addChild':
+        onAddChild(nodeId);
+        break;
+      case 'addSibling':
+        onAddSibling(nodeId);
+        break;
+      case 'edit':
+        onEdit(nodeId);
+        break;
+      case 'delete':
+        onDelete(nodeId);
+        break;
     }
+
     onClose();
   };
 
   return (
     <div
       role="menu"
+      aria-label="Node context menu"
       className="fixed bg-white rounded-lg shadow-lg py-2 min-w-[200px] z-50"
       style={{
-        position: 'absolute',
         top: `${position.y}px`,
         left: `${position.x}px`,
       }}
     >
-      {menuItems.map((item) => (
-        <button
-          key={item.label}
-          className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-gray-100 transition-colors"
-          onClick={() => handleItemClick(item.onClick)}
-        >
-          <item.icon className="w-4 h-4" />
-          <span>{item.label}</span>
-        </button>
-      ))}
+      {menuItems.map((item) => {
+        const Icon = item.icon;
+        return (
+          <button
+            key={item.action}
+            role="menuitem"
+            onClick={() => handleItemClick(item.action)}
+            className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-gray-100 transition-colors"
+            disabled={!nodeId}
+          >
+            <Icon className="w-4 h-4" />
+            <span>{item.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 };
