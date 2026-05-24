@@ -3,6 +3,14 @@ import { useSearch } from './useSearch';
 import { MindNode } from '../lib/types';
 
 describe('useSearch', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   const createNode = (id: string, text: string, children: MindNode[] = []): MindNode => ({
     id,
     text,
@@ -33,6 +41,35 @@ describe('useSearch', () => {
     expect(result.current.searchResults).toEqual([]);
   });
 
+  it('should debounce search by 300ms', () => {
+    const nodes = [
+      createNode('1', 'Root', [
+        createNode('2', 'Hello World'),
+        createNode('3', 'Goodbye'),
+      ]),
+    ];
+
+    const { result } = renderHook(() => useSearch(nodes));
+
+    act(() => {
+      result.current.setSearchQuery('hello');
+    });
+
+    expect(result.current.searchResults).toEqual([]);
+
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+
+    expect(result.current.searchResults).toEqual([
+      {
+        nodeId: '2',
+        nodePath: ['1'],
+        matchText: 'Hello World',
+      },
+    ]);
+  });
+
   it('should find nodes by text (case-insensitive)', () => {
     const nodes = [
       createNode('1', 'Root', [
@@ -45,6 +82,10 @@ describe('useSearch', () => {
 
     act(() => {
       result.current.setSearchQuery('hello');
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(300);
     });
 
     expect(result.current.searchResults).toEqual([
@@ -73,6 +114,10 @@ describe('useSearch', () => {
       result.current.setSearchQuery('deep');
     });
 
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+
     expect(result.current.searchResults).toEqual([
       {
         nodeId: '4',
@@ -98,6 +143,10 @@ describe('useSearch', () => {
       result.current.setSearchQuery('grandchild');
     });
 
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+
     expect(result.current.searchResults).toEqual([
       {
         nodeId: '3',
@@ -120,6 +169,10 @@ describe('useSearch', () => {
 
     act(() => {
       result.current.setSearchQuery('test');
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(300);
     });
 
     expect(result.current.searchResults).toHaveLength(2);
@@ -152,6 +205,10 @@ describe('useSearch', () => {
       result.current.setSearchQuery('hello');
     });
 
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+
     expect(result.current.searchResults).toHaveLength(1);
 
     act(() => {
@@ -175,6 +232,10 @@ describe('useSearch', () => {
 
     act(() => {
       result.current.setSearchQuery('case');
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(300);
     });
 
     expect(result.current.searchResults).toHaveLength(3);
@@ -215,6 +276,10 @@ describe('useSearch', () => {
       result.current.setSearchQuery('target');
     });
 
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+
     expect(result.current.searchResults).toHaveLength(2);
     expect(result.current.searchResults).toEqual(
       expect.arrayContaining([
@@ -239,6 +304,10 @@ describe('useSearch', () => {
       result.current.setSearchQuery('test');
     });
 
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+
     expect(result.current.searchResults).toEqual([]);
   });
 
@@ -256,11 +325,19 @@ describe('useSearch', () => {
       result.current.setSearchQuery('apple');
     });
 
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+
     expect(result.current.searchResults).toHaveLength(1);
     expect(result.current.searchResults[0].nodeId).toBe('2');
 
     act(() => {
       result.current.setSearchQuery('banana');
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(300);
     });
 
     expect(result.current.searchResults).toHaveLength(1);

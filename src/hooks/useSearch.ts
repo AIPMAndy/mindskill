@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { MindNode } from '../lib/types';
 
 export interface SearchResult {
@@ -9,14 +9,23 @@ export interface SearchResult {
 
 export function useSearch(nodes: MindNode[]) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) {
+    if (!debouncedQuery.trim()) {
       return [];
     }
 
     const results: SearchResult[] = [];
-    const query = searchQuery.toLowerCase();
+    const query = debouncedQuery.toLowerCase();
 
     function searchNode(node: MindNode, path: string[]) {
       if (node.text.toLowerCase().includes(query)) {
@@ -40,10 +49,11 @@ export function useSearch(nodes: MindNode[]) {
     }
 
     return results;
-  }, [nodes, searchQuery]);
+  }, [nodes, debouncedQuery]);
 
   const clearSearch = () => {
     setSearchQuery('');
+    setDebouncedQuery('');
   };
 
   return {
