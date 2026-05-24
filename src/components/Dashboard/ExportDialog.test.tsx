@@ -213,7 +213,6 @@ describe('ExportDialog', () => {
       expect(mockExportMindMap).toHaveBeenCalledWith(mockCanvasRef.current, {
         format: 'pdf',
         filename: 'mindmap.pdf',
-        quality: 1.0,
       });
     });
   });
@@ -350,7 +349,7 @@ describe('ExportDialog', () => {
   });
 
   it('should not export when canvasRef is null', async () => {
-    const nullRef = { current: null };
+    const nullRef = { current: null } as unknown as React.RefObject<HTMLElement>;
 
     render(
       <ExportDialog

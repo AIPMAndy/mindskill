@@ -36,7 +36,7 @@ export function ExportDialog({ isOpen, onClose, canvasRef }: ExportDialogProps) 
     await exportMindMap(canvasRef.current, {
       format,
       filename: filenameWithExtension,
-      quality,
+      ...(format === 'png' && { quality }),
     });
   };
 
