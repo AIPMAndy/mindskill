@@ -1,5 +1,11 @@
 import { Command } from './commands/Command';
 
+export interface NodeMarker {
+  type: 'star' | 'check' | 'cross' | 'progress' | 'priority' | 'custom';
+  value?: string | number;
+  color?: string;
+}
+
 export interface MindNode {
   id: string;
   text: string;
@@ -8,6 +14,12 @@ export interface MindNode {
   style?: NodeStyle;
   collapsed?: boolean;
   expanded?: boolean;
+  icon?: string;
+  markers?: NodeMarker[];
+  note?: string;
+  link?: string;
+  tags?: string[];
+  priority?: 1 | 2 | 3 | 4 | 5;
 }
 
 export interface NodeStyle {
