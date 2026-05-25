@@ -32,7 +32,13 @@ import { AddNodeCommand } from '@/lib/commands/AddNodeCommand';
 import { DeleteNodeCommand } from '@/lib/commands/DeleteNodeCommand';
 import { UpdateNodeCommand } from '@/lib/commands/UpdateNodeCommand';
 import { v4 as uuidv4 } from 'uuid';
-import { Download } from 'lucide-react';
+import { Download, Menu } from 'lucide-react';
+import { IconPicker } from './IconPicker';
+import { MarkerPicker } from './MarkerPicker';
+import { NodeNoteEditor } from './NodeNoteEditor';
+import { NodeLinkEditor } from './NodeLinkEditor';
+import { OutlineView } from './OutlineView';
+import { NodeMarker } from '@/lib/types';
 
 interface CustomNodeData {
   node: MindNode;
@@ -108,6 +114,13 @@ export const EnhancedCanvas = () => {
   const [searchBarFocused, setSearchBarFocused] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+
+  // Phase 2 state management
+  const [activeIconPicker, setActiveIconPicker] = useState<string | null>(null);
+  const [activeMarkerPicker, setActiveMarkerPicker] = useState<string | null>(null);
+  const [activeNoteEditor, setActiveNoteEditor] = useState<string | null>(null);
+  const [activeLinkEditor, setActiveLinkEditor] = useState<string | null>(null);
+  const [showOutline, setShowOutline] = useState(true);
 
   const convertToFlowNodes = useCallback(
     (
@@ -334,6 +347,108 @@ export const EnhancedCanvas = () => {
     }
   }, [selectedNodeId, currentMindMap, commandHistory, updateNode]);
 
+  // Phase 2 handlers
+  const handleIconSelect = useCallback(
+    (nodeId: string, iconName: string) => {
+      if (!currentMindMap) return;
+
+      const findAndUpdateNode = (nodes: MindNode[]): MindNode[] => {
+        return nodes.map(node => {
+          if (node.id === nodeId) {
+            return { ...node, icon: iconName };
+          }
+          if (node.children.length > 0) {
+            return { ...node, children: findAndUpdateNode(node.children) };
+          }
+          return node;
+        });
+      };
+
+      const updatedNodes = findAndUpdateNode(currentMindMap.nodes);
+      useMindMapStore.setState({
+        currentMindMap: { ...currentMindMap, nodes: updatedNodes }
+      });
+      setActiveIconPicker(null);
+    },
+    [currentMindMap]
+  );
+
+  const handleMarkerSelect = useCallback(
+    (nodeId: string, marker: NodeMarker) => {
+      if (!currentMindMap) return;
+
+      const findAndUpdateNode = (nodes: MindNode[]): MindNode[] => {
+        return nodes.map(node => {
+          if (node.id === nodeId) {
+            const existingMarkers = node.markers || [];
+            return { ...node, markers: [...existingMarkers, marker] };
+          }
+          if (node.children.length > 0) {
+            return { ...node, children: findAndUpdateNode(node.children) };
+          }
+          return node;
+        });
+      };
+
+      const updatedNodes = findAndUpdateNode(currentMindMap.nodes);
+      useMindMapStore.setState({
+        currentMindMap: { ...currentMindMap, nodes: updatedNodes }
+      });
+      setActiveMarkerPicker(null);
+    },
+    [currentMindMap]
+  );
+
+  const handleNoteSave = useCallback(
+    (nodeId: string, note: string) => {
+      if (!currentMindMap) return;
+
+      const findAndUpdateNode = (nodes: MindNode[]): MindNode[] => {
+        return nodes.map(node => {
+          if (node.id === nodeId) {
+            return { ...node, note };
+          }
+          if (node.children.length > 0) {
+            return { ...node, children: findAndUpdateNode(node.children) };
+          }
+          return node;
+        });
+      };
+
+      const updatedNodes = findAndUpdateNode(currentMindMap.nodes);
+      useMindMapStore.setState({
+        currentMindMap: { ...currentMindMap, nodes: updatedNodes }
+      });
+      setActiveNoteEditor(null);
+    },
+    [currentMindMap]
+  );
+
+  const handleLinkSave = useCallback(
+    (nodeId: string, link: string) => {
+      if (!currentMindMap) return;
+
+      const findAndUpdateNode = (nodes: MindNode[]): MindNode[] => {
+        return nodes.map(node => {
+          if (node.id === nodeId) {
+            return { ...node, link };
+          }
+          if (node.children.length > 0) {
+            return { ...node, children: findAndUpdateNode(node.children) };
+          }
+          return node;
+        });
+      };
+
+      const updatedNodes = findAndUpdateNode(currentMindMap.nodes);
+      useMindMapStore.setState({
+        currentMindMap: { ...currentMindMap, nodes: updatedNodes }
+      });
+      setActiveLinkEditor(null);
+    },
+    [currentMindMap]
+  );
+
   // Keyboard shortcuts
   useKeyboardShortcuts({
     onUndo: commandHistory.undo,
@@ -456,6 +571,22 @@ export const EnhancedCanvas = () => {
           setSelectedNode(nodeId);
           handleDelete();
         }}
+        onAddIcon={(nodeId) => {
+          setActiveIconPicker(nodeId);
+          closeContextMenu();
+        }}
+        onAddMarker={(nodeId) => {
+          setActiveMarkerPicker(nodeId);
+          closeContextMenu();
+        }}
+        onAddNote={(nodeId) => {
+          setActiveNoteEditor(nodeId);
+          closeContextMenu();
+        }}
+        onAddLink={(nodeId) => {
+          setActiveLinkEditor(nodeId);
+          closeContextMenu();
+        }}
         onClose={closeContextMenu}
       />
 
@@ -465,6 +596,106 @@ export const EnhancedCanvas = () => {
         onClose={() => setIsExportDialogOpen(false)}
         canvasRef={canvasRef as React.RefObject<HTMLElement>}
       />
+
+      {/* Phase 2 Components */}
+      {/* Outline View */}
+      {showOutline && (
+        <div className="absolute left-4 top-20 bottom-4 w-64 bg-white/90 backdrop-blur-xl shadow-lg rounded-xl border-2 border-gray-200 overflow-hidden z-10">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-700">Outline</h3>
+            <button
+              onClick={() => setShowOutline(false)}
+              className="p-1 rounded hover:bg-gray-100 transition-colors"
+              aria-label="Close outline"
+            >
+              <Menu className="w-4 h-4 text-gray-500" />
+            </button>
+          </div>
+          <div className="overflow-y-auto h-[calc(100%-3rem)]">
+            <OutlineView
+              nodes={currentMindMap.nodes}
+              selectedNodeId={selectedNodeId || undefined}
+              onNodeClick={setSelectedNode}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Outline Toggle Button (when hidden) */}
+      {!showOutline && (
+        <button
+          onClick={() => setShowOutline(true)}
+          className="absolute left-4 top-20 z-10 bg-white/80 backdrop-blur-xl shadow-lg rounded-xl p-2 hover:bg-white transition-colors border-2 border-gray-200"
+          aria-label="Show outline"
+        >
+          <Menu className="w-5 h-5 text-gray-600" />
+        </button>
+      )}
+
+      {/* Icon Picker */}
+      {activeIconPicker && (
+        <IconPicker
+          isOpen={true}
+          onSelect={(iconName) => handleIconSelect(activeIconPicker, iconName)}
+          onClose={() => setActiveIconPicker(null)}
+        />
+      )}
+
+      {/* Marker Picker */}
+      {activeMarkerPicker && (
+        <MarkerPicker
+          isOpen={true}
+          onSelect={(marker) => handleMarkerSelect(activeMarkerPicker, marker)}
+          onClose={() => setActiveMarkerPicker(null)}
+        />
+      )}
+
+      {/* Note Editor */}
+      {activeNoteEditor && (
+        <NodeNoteEditor
+          isOpen={true}
+          note={
+            (() => {
+              const findNode = (nodes: MindNode[], id: string): MindNode | null => {
+                for (const node of nodes) {
+                  if (node.id === id) return node;
+                  const found = findNode(node.children, id);
+                  if (found) return found;
+                }
+                return null;
+              };
+              const node = findNode(currentMindMap.nodes, activeNoteEditor);
+              return node?.note || '';
+            })()
+          }
+          onSave={(note) => handleNoteSave(activeNoteEditor, note)}
+          onClose={() => setActiveNoteEditor(null)}
+        />
+      )}
+
+      {/* Link Editor */}
+      {activeLinkEditor && (
+        <NodeLinkEditor
+          isOpen={true}
+          link={
+            (() => {
+              const findNode = (nodes: MindNode[], id: string): MindNode | null => {
+                for (const node of nodes) {
+                  if (node.id === id) return node;
+                  const found = findNode(node.children, id);
+                  if (found) return found;
+                }
+                return null;
+              };
+              const node = findNode(currentMindMap.nodes, activeLinkEditor);
+              return node?.link || '';
+            })()
+          }
+          nodes={currentMindMap.nodes}
+          onSave={(link) => handleLinkSave(activeLinkEditor, link)}
+          onClose={() => setActiveLinkEditor(null)}
+        />
+      )}
     </div>
   );
 };
