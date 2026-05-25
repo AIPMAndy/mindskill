@@ -4,8 +4,10 @@ import { memo, useState, useRef, useEffect } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { MindNode as MindNodeType } from '@/lib/types';
 import { useMindMapStore } from '@/lib/store';
-import { ChevronRight, ChevronDown, Palette } from 'lucide-react';
+import { ChevronRight, ChevronDown, Palette, FileText, Link as LinkIcon } from 'lucide-react';
+import * as Icons from 'lucide-react';
 import { getTheme } from '@/lib/themes';
+import { MarkerBadge } from './MarkerBadge';
 
 interface CustomNodeData {
   node: MindNodeType;
@@ -107,6 +109,9 @@ export const MindMapNode = memo(({ data, selected }: NodeProps) => {
   const nodeStyle = nodeData.node.style || {};
   const isSearchMatch = nodeData.isSearchMatch || false;
 
+  // Get icon component if icon is set
+  const IconComponent = nodeData.node.icon ? (Icons as any)[nodeData.node.icon] : null;
+
   return (
     <div
       className={`relative group ${selected ? 'z-10' : ''}`}
@@ -119,6 +124,46 @@ export const MindMapNode = memo(({ data, selected }: NodeProps) => {
         style={{ backgroundColor: theme.colors.accent }}
         className="!w-2 !h-2 !border-0 opacity-0 group-hover:opacity-100 transition-opacity"
       />
+
+      {/* Icon - top-left */}
+      {IconComponent && !isEditing && (
+        <div
+          className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-white border-2 flex items-center justify-center shadow-sm z-10"
+          style={{ borderColor: theme.colors.accent }}
+          title={`Icon: ${nodeData.node.icon}`}
+        >
+          <IconComponent className="w-3.5 h-3.5" style={{ color: theme.colors.accent }} />
+        </div>
+      )}
+
+      {/* Markers - top-right */}
+      {nodeData.node.markers && nodeData.node.markers.length > 0 && !isEditing && (
+        <div className="absolute -top-2 -right-2 flex gap-1 z-10">
+          {nodeData.node.markers.map((marker, index) => (
+            <MarkerBadge key={index} marker={marker} />
+          ))}
+        </div>
+      )}
+
+      {/* Note indicator - bottom-left */}
+      {nodeData.node.note && !isEditing && (
+        <div
+          className="absolute -bottom-2 -left-2 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center shadow-sm z-10"
+          title="Has note"
+        >
+          <FileText className="w-3 h-3 text-white" />
+        </div>
+      )}
+
+      {/* Link indicator - bottom-right */}
+      {nodeData.node.link && !isEditing && (
+        <div
+          className="absolute -bottom-2 -right-2 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center shadow-sm z-10"
+          title="Has link"
+        >
+          <LinkIcon className="w-3 h-3 text-white" />
+        </div>
+      )}
 
       <div
         className="px-6 py-3 rounded-2xl transition-all duration-300 min-w-[120px] max-w-[320px] text-center border-2 flex items-center gap-3"

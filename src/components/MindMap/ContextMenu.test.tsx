@@ -7,6 +7,10 @@ describe('ContextMenu', () => {
     onAddSibling: jest.fn(),
     onDelete: jest.fn(),
     onEdit: jest.fn(),
+    onAddIcon: jest.fn(),
+    onAddMarker: jest.fn(),
+    onAddNote: jest.fn(),
+    onAddLink: jest.fn(),
     onClose: jest.fn(),
   };
 
@@ -58,6 +62,10 @@ describe('ContextMenu', () => {
     expect(screen.getByText('Add Child Node')).toBeInTheDocument();
     expect(screen.getByText('Add Sibling Node')).toBeInTheDocument();
     expect(screen.getByText('Edit Node')).toBeInTheDocument();
+    expect(screen.getByText('Add Icon')).toBeInTheDocument();
+    expect(screen.getByText('Add Marker')).toBeInTheDocument();
+    expect(screen.getByText('Add Note')).toBeInTheDocument();
+    expect(screen.getByText('Add Link')).toBeInTheDocument();
     expect(screen.getByText('Delete Node')).toBeInTheDocument();
   });
 
@@ -122,6 +130,70 @@ describe('ContextMenu', () => {
     fireEvent.click(screen.getByText('Delete Node'));
 
     expect(mockCallbacks.onDelete).toHaveBeenCalledWith('node-1');
+    expect(mockCallbacks.onClose).toHaveBeenCalled();
+  });
+
+  it('should call onAddIcon and onClose when Add Icon clicked', () => {
+    render(
+      <ContextMenu
+        isOpen={true}
+        position={{ x: 100, y: 200 }}
+        nodeId="node-1"
+        {...mockCallbacks}
+      />
+    );
+
+    fireEvent.click(screen.getByText('Add Icon'));
+
+    expect(mockCallbacks.onAddIcon).toHaveBeenCalledWith('node-1');
+    expect(mockCallbacks.onClose).toHaveBeenCalled();
+  });
+
+  it('should call onAddMarker and onClose when Add Marker clicked', () => {
+    render(
+      <ContextMenu
+        isOpen={true}
+        position={{ x: 100, y: 200 }}
+        nodeId="node-1"
+        {...mockCallbacks}
+      />
+    );
+
+    fireEvent.click(screen.getByText('Add Marker'));
+
+    expect(mockCallbacks.onAddMarker).toHaveBeenCalledWith('node-1');
+    expect(mockCallbacks.onClose).toHaveBeenCalled();
+  });
+
+  it('should call onAddNote and onClose when Add Note clicked', () => {
+    render(
+      <ContextMenu
+        isOpen={true}
+        position={{ x: 100, y: 200 }}
+        nodeId="node-1"
+        {...mockCallbacks}
+      />
+    );
+
+    fireEvent.click(screen.getByText('Add Note'));
+
+    expect(mockCallbacks.onAddNote).toHaveBeenCalledWith('node-1');
+    expect(mockCallbacks.onClose).toHaveBeenCalled();
+  });
+
+  it('should call onAddLink and onClose when Add Link clicked', () => {
+    render(
+      <ContextMenu
+        isOpen={true}
+        position={{ x: 100, y: 200 }}
+        nodeId="node-1"
+        {...mockCallbacks}
+      />
+    );
+
+    fireEvent.click(screen.getByText('Add Link'));
+
+    expect(mockCallbacks.onAddLink).toHaveBeenCalledWith('node-1');
     expect(mockCallbacks.onClose).toHaveBeenCalled();
   });
 
