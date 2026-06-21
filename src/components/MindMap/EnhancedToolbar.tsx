@@ -19,14 +19,17 @@ import {
   Plus,
   Palette,
   Minimize2,
+  Save,
+  Loader2,
 } from 'lucide-react';
 import { themes, getTheme } from '@/lib/themes';
 
 interface ToolbarProps {
   onSave?: () => void;
+  isSaving?: boolean;
 }
 
-export const EnhancedToolbar = ({ onSave }: ToolbarProps) => {
+export const EnhancedToolbar = ({ onSave, isSaving = false }: ToolbarProps) => {
   const router = useRouter();
   const {
     currentMindMap,
@@ -233,7 +236,14 @@ export const EnhancedToolbar = ({ onSave }: ToolbarProps) => {
                   value={titleValue}
                   onChange={(e) => setTitleValue(e.target.value)}
                   onBlur={handleTitleSave}
-                  onKeyDown={(e) => e.key === 'Enter' && handleTitleSave()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleTitleSave();
+                    } else if (e.key === 'Escape') {
+                      setTitleValue(currentMindMap?.title || '');
+                      setIsEditingTitle(false);
+                    }
+                  }}
                   className="text-2xl font-light text-[#1A1A1A] bg-transparent border-b border-[#D4AF37] outline-none tracking-wide px-2 py-1"
                   autoFocus
                 />
@@ -322,7 +332,6 @@ export const EnhancedToolbar = ({ onSave }: ToolbarProps) => {
                 onClick={() => {
                   if (currentMindMap) {
                     const newCompact = !currentMindMap.settings.compact;
-                    console.log('[Compact] Toggling compact from', currentMindMap.settings.compact, 'to', newCompact);
                     updateMindMap(currentMindMap.id, {
                       settings: { ...currentMindMap.settings, compact: newCompact },
                     });
@@ -370,6 +379,27 @@ export const EnhancedToolbar = ({ onSave }: ToolbarProps) => {
                 <Download className="w-5 h-5" strokeWidth={1.5} />
                 导出
               </button>
+
+              {/* 保存按钮 */}
+              {onSave && (
+                <button
+                  onClick={onSave}
+                  disabled={isSaving}
+                  className="px-6 py-3 text-base font-light text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all duration-300 tracking-wide flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" strokeWidth={1.5} />
+                      保存中...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-5 h-5" strokeWidth={1.5} />
+                      保存
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -430,13 +460,10 @@ export const EnhancedToolbar = ({ onSave }: ToolbarProps) => {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  console.log('[Theme Click] Switching to theme:', t.id);
                   if (currentMindMap) {
-                    console.log('[Theme Click] Current settings:', currentMindMap.settings);
                     updateMindMap(currentMindMap.id, {
                       settings: { ...currentMindMap.settings, theme: t.id },
                     });
-                    console.log('[Theme Click] Updated settings:', { ...currentMindMap.settings, theme: t.id });
                   }
                   setShowThemeSelector(false);
                 }}

@@ -140,16 +140,13 @@ export class XMindParser {
     const content = JSON.parse(contentJson);
     const metadata = JSON.parse(metadataJson);
 
-    console.log('[XMindParser] Parsed content:', content);
 
     const rootTopic = content[0]?.rootTopic;
     const title = content[0]?.title || '未命名思维导图';
 
-    console.log('[XMindParser] Root topic:', rootTopic);
 
     const nodes = rootTopic ? this.parseTopicToNodes(rootTopic) : [];
 
-    console.log('[XMindParser] Parsed nodes:', nodes);
 
     return {
       id: this.generateId(),
@@ -197,7 +194,6 @@ export class XMindParser {
   }
 
   private static parseTopicToNodes(topic: XMindContent): MindNode[] {
-    console.log('[parseTopicToNodes] Parsing topic:', topic);
 
     const node: MindNode = {
       id: topic.id || this.generateId(),
@@ -212,14 +208,11 @@ export class XMindParser {
       : topic.children?.attached || [];
 
     if (childrenArray && Array.isArray(childrenArray) && childrenArray.length > 0) {
-      console.log('[parseTopicToNodes] Topic has children:', childrenArray.length);
       node.children = childrenArray.map(child =>
         this.parseTopicToNodes(child)
       ).flat();
-      console.log('[parseTopicToNodes] Parsed children:', node.children);
     }
 
-    console.log('[parseTopicToNodes] Returning node:', node);
     return [node];
   }
 

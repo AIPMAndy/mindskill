@@ -53,7 +53,6 @@ const createDefaultNode = (text: string = '中心主题'): MindNode => {
     children: [],
     expanded: true,
   };
-  console.log('[createDefaultNode] Created node:', node);
   return node;
 };
 
@@ -72,10 +71,8 @@ export const useMindMapStore = create<MindMapState>()(
       maxHistorySize: 50,
 
       addMindMap: (title: string, nodes?: MindNode[]) => {
-        console.log('[addMindMap] Called with title:', title, 'nodes:', nodes);
 
         const defaultNodes = (nodes && nodes.length > 0) ? nodes : [createDefaultNode(title || '中心主题')];
-        console.log('[addMindMap] Default nodes created:', defaultNodes);
 
         const newMindMap: MindMap = {
           id: uuidv4(),
@@ -90,7 +87,6 @@ export const useMindMapStore = create<MindMapState>()(
           updatedAt: new Date().toISOString(),
         };
 
-        console.log('[addMindMap] New mind map object before set:', JSON.stringify(newMindMap, null, 2));
 
         set((state) => {
           const newState = {
@@ -100,16 +96,13 @@ export const useMindMapStore = create<MindMapState>()(
             history: [{ nodes: JSON.parse(JSON.stringify(newMindMap.nodes)), timestamp: Date.now() }],
             historyIndex: 0
           };
-          console.log('[addMindMap] New state being set:', JSON.stringify(newState.currentMindMap, null, 2));
           return newState;
         });
 
-        console.log('[addMindMap] Returning mind map:', newMindMap);
         return newMindMap;
       },
 
       updateMindMap: (id: string, updates: Partial<MindMap>) => {
-        console.log('[updateMindMap] Called with id:', id, 'updates:', updates);
         set((state) => {
           const newState = {
             mindMaps: state.mindMaps.map((m) =>
@@ -126,7 +119,6 @@ export const useMindMapStore = create<MindMapState>()(
                   }
                 : state.currentMindMap,
           };
-          console.log('[updateMindMap] New currentMindMap:', newState.currentMindMap);
           return newState;
         });
       },
@@ -140,22 +132,18 @@ export const useMindMapStore = create<MindMapState>()(
       },
 
       setCurrentMindMap: (id: string | null) => {
-        console.log('[setCurrentMindMap] Called with id:', id);
         if (id === null) {
           set({ currentMindMap: null, selectedNodeId: null, history: [], historyIndex: -1 });
           return;
         }
         const allMindMaps = get().mindMaps;
-        console.log('[setCurrentMindMap] All mindMaps:', JSON.stringify(allMindMaps, null, 2));
         const mindMap = allMindMaps.find((m) => m.id === id);
-        console.log('[setCurrentMindMap] Found mindMap:', JSON.stringify(mindMap, null, 2));
         set({
           currentMindMap: mindMap || null,
           selectedNodeId: null,
           history: mindMap ? [{ nodes: JSON.parse(JSON.stringify(mindMap.nodes)), timestamp: Date.now() }] : [],
           historyIndex: mindMap ? 0 : -1
         });
-        console.log('[setCurrentMindMap] After set, currentMindMap:', get().currentMindMap);
       },
 
       saveToHistory: () => {
@@ -208,7 +196,6 @@ export const useMindMapStore = create<MindMapState>()(
       },
 
       addNode: (parentId: string, text: string) => {
-        console.log('[addNode] Called with parentId:', parentId, 'text:', text);
         get().saveToHistory();
 
         const addNodeToTree = (
@@ -223,7 +210,6 @@ export const useMindMapStore = create<MindMapState>()(
                 children: [],
                 expanded: true,
               };
-              console.log('[addNode] Found target node, adding new node:', newNode.id);
               return {
                 ...node,
                 children: [...node.children, newNode],
@@ -245,9 +231,7 @@ export const useMindMapStore = create<MindMapState>()(
           return;
         }
 
-        console.log('[addNode] Current nodes before:', currentMap.nodes);
         const updatedNodes = addNodeToTree(currentMap.nodes, parentId);
-        console.log('[addNode] Updated nodes after:', updatedNodes);
         get().updateNodes(updatedNodes);
       },
 
@@ -331,14 +315,12 @@ export const useMindMapStore = create<MindMapState>()(
       },
 
       updateNodes: (nodes: MindNode[]) => {
-        console.log('[updateNodes] Called with nodes:', nodes);
         const currentMap = get().currentMindMap;
         if (!currentMap) {
           console.error('[updateNodes] No current mind map!');
           return;
         }
 
-        console.log('[updateNodes] Updating mind map:', currentMap.id);
         get().updateMindMap(currentMap.id, { nodes });
       },
     }),

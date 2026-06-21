@@ -3,30 +3,29 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useMindMapStore } from '@/lib/store';
+import { useToast } from '@/components/UI/Toast';
+import { Loading } from '@/components/UI/Loading';
 import { EnhancedCanvas } from '@/components/MindMap/EnhancedCanvas';
 import { EnhancedToolbar } from '@/components/MindMap/EnhancedToolbar';
-import { Loader2 } from 'lucide-react';
 
 function EditorContent() {
   const searchParams = useSearchParams();
   const id = searchParams.get('id');
   const { mindMaps, setCurrentMindMap, currentMindMap } = useMindMapStore();
+  const { showToast } = useToast();
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (id) {
-      console.log('[EditorContent] Loading mind map with id:', id);
-      console.log('[EditorContent] Current mindMaps:', mindMaps);
 
       // 如果 currentMindMap 已经是正确的，就不要重新设置
       if (currentMindMap && currentMindMap.id === id) {
-        console.log('[EditorContent] currentMindMap already set correctly:', currentMindMap);
         setIsLoaded(true);
         return;
       }
 
       const mindMap = mindMaps.find((m) => m.id === id);
-      console.log('[EditorContent] Found mindMap:', mindMap);
 
       if (mindMap) {
         setCurrentMindMap(id);
@@ -38,24 +37,25 @@ function EditorContent() {
     }
   }, [id, mindMaps, setCurrentMindMap, currentMindMap]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (currentMindMap) {
-      useMindMapStore.getState().updateMindMap(currentMindMap.id, {
-        nodes: currentMindMap.nodes,
-        updatedAt: new Date().toISOString(),
-      });
+      setIsSaving(true);
+      try {
+        useMindMapStore.getState().updateMindMap(currentMindMap.id, {
+          nodes: currentMindMap.nodes,
+          updatedAt: new Date().toISOString(),
+        });
+        showToast('保存成功', 'success');
+      } catch (error) {
+        showToast('保存失败', 'error');
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
   if (!isLoaded) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">加载中...</p>
-        </div>
-      </div>
-    );
+    return <Loading fullScreen />;
   }
 
   if (!currentMindMap) {
@@ -76,7 +76,7 @@ function EditorContent() {
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
-      <EnhancedToolbar onSave={handleSave} />
+      <EnhancedToolbar onSave={handleSave} isSaving={isSaving} />
       <div className="flex-1 overflow-hidden">
         <EnhancedCanvas />
       </div>
@@ -86,14 +86,7 @@ function EditorContent() {
 
 export default function EditorPage() {
   return (
-    <Suspense fallback={
-      <div className="h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">加载中...</p>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<Loading fullScreen />}>
       <EditorContent />
     </Suspense>
   );

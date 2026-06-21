@@ -5,6 +5,7 @@ import { Modal } from '@/components/UI/Modal';
 import { Button } from '@/components/UI/Button';
 import { Input } from '@/components/UI/Input';
 import { useMindMapStore } from '@/lib/store';
+import { useToast } from '@/components/UI/Toast';
 import { Sparkles, Loader2 } from 'lucide-react';
 
 interface AIGenerateModalProps {
@@ -24,6 +25,7 @@ export const AIGenerateModal = ({
   onGenerate,
 }: AIGenerateModalProps) => {
   const { aiConfig } = useMindMapStore();
+  const { showToast } = useToast();
   const [topic, setTopic] = useState('');
   const [modelName, setModelName] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
@@ -71,10 +73,19 @@ export const AIGenerateModal = ({
           apiKey: apiKey.trim(),
         }
       );
-      onClose();
-      setTopic('');
+
+      // 成功提示
+      showToast('思维导图生成成功！', 'success');
+
+      // 延迟关闭，让用户看到成功提示
+      setTimeout(() => {
+        onClose();
+        setTopic('');
+      }, 1500);
     } catch (err: any) {
-      setError(err.message || '生成失败，请重试');
+      const errorMessage = err.message || '生成失败，请重试';
+      setError(errorMessage);
+      showToast(errorMessage, 'error');
     } finally {
       setIsGenerating(false);
     }

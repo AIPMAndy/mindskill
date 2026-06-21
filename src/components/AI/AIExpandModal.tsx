@@ -5,6 +5,7 @@ import { Modal } from '@/components/UI/Modal';
 import { Button } from '@/components/UI/Button';
 import { Input } from '@/components/UI/Input';
 import { useMindMapStore } from '@/lib/store';
+import { useToast } from '@/components/UI/Toast';
 import { Sparkles, Loader2 } from 'lucide-react';
 import { findNodeById } from '@/lib/utils';
 
@@ -25,6 +26,7 @@ export const AIExpandModal = ({
   onExpand,
 }: AIExpandModalProps) => {
   const { currentMindMap, selectedNodeId, aiConfig } = useMindMapStore();
+  const { showToast } = useToast();
   const [count, setCount] = useState(3);
   const [modelName, setModelName] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
@@ -72,9 +74,18 @@ export const AIExpandModal = ({
           apiKey: apiKey.trim(),
         }
       );
-      onClose();
+
+      // 成功提示
+      showToast(`成功扩展 ${count} 个子节点！`, 'success');
+
+      // 延迟关闭
+      setTimeout(() => {
+        onClose();
+      }, 1500);
     } catch (err: any) {
-      setError(err.message || '扩展失败，请重试');
+      const errorMessage = err.message || '扩展失败，请重试';
+      setError(errorMessage);
+      showToast(errorMessage, 'error');
     } finally {
       setIsExpanding(false);
     }

@@ -1,8 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MindMap } from '@/lib/types';
 import { useMindMapStore } from '@/lib/store';
+import { useToast } from '@/components/UI/Toast';
+import { ConfirmDialog } from '@/components/UI/ConfirmDialog';
 import { formatDate, countNodes } from '@/lib/utils';
 import { Trash2, Clock, GitBranch } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -15,6 +18,8 @@ interface MindMapCardProps {
 export const MindMapCard = ({ mindMap, index = 0 }: MindMapCardProps) => {
   const router = useRouter();
   const { deleteMindMap, loadMindMap } = useMindMapStore();
+  const { showToast } = useToast();
+  const [showConfirm, setShowConfirm] = useState(false);
   const nodeCount = countNodes(mindMap.nodes);
 
   const handleOpen = () => {
@@ -24,9 +29,12 @@ export const MindMapCard = ({ mindMap, index = 0 }: MindMapCardProps) => {
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm('确定要删除这个思维导图吗？')) {
-      deleteMindMap(mindMap.id);
-    }
+    setShowConfirm(true);
+  };
+
+  const confirmDelete = () => {
+    deleteMindMap(mindMap.id);
+    showToast('思维导图已删除', 'success');
   };
 
   return (
@@ -74,6 +82,18 @@ export const MindMapCard = ({ mindMap, index = 0 }: MindMapCardProps) => {
           </div>
         </div>
       </div>
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        onConfirm={confirmDelete}
+        title="删除思维导图"
+        message={`确定要删除「${mindMap.title}」吗？此操作无法撤销。`}
+        confirmText="删除"
+        cancelText="取消"
+        type="danger"
+      />
     </motion.div>
   );
 };
